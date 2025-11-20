@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-toastify';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
+import { initializeDatabase } from '../../utils/databaseSetup';
 
 interface RegisterForm {
   email: string;
@@ -30,17 +31,31 @@ const Register: React.FC = () => {
     setLoading(true);
     try {
       const userCredential = await registerUser(data.email, data.password);
+
       // Create user profile in Firestore
       await setDoc(doc(db, 'users', userCredential.user.uid), {
         email: data.email,
         firstName: data.firstName,
         lastName: data.lastName,
         createdAt: new Date(),
+        updatedAt: new Date(),
       });
-      toast.success('Account created successfully!');
+
+      // Automatically initialize database with sample data
+      console.log('Initializing database for new user...');
+      try {
+        await initializeDatabase(userCredential.user.uid);
+        console.log('Database initialized successfully');
+      } catch (initError) {
+        console.warn('Database initialization failed, but user account created:', initError);
+        // Don't fail registration if database init fails
+      }
+
+      toast.success('Account created successfully! Welcome to your fitness journey!');
       navigate('/dashboard');
     } catch (error: any) {
-      toast.error(error.message);
+      console.error('Registration error:', error);
+      toast.error(error.message || 'Failed to create account');
     } finally {
       setLoading(false);
     }

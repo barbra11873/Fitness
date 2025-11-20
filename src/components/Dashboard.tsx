@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { doc, setDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { doc, setDoc, addDoc, collection } from 'firebase/firestore';
+import { db, auth } from '../firebase';
 import { toast } from 'react-toastify';
 import WorkoutList from './WorkoutList';
+import NotificationBell from './Notifications/NotificationBell';
 import { signOut } from 'firebase/auth';
-import { auth } from '../firebase';
+import WorkoutForm from './WorkoutForm';
+import GoalForm from './GoalForm';
+import Stats from './Stats';
+import LocationTracker from './LocationTracker';
 
 const Dashboard: React.FC = () => {
   const { userProfile, user, refreshProfile } = useAuth();
@@ -29,6 +33,20 @@ const Dashboard: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState('');
   const [savingName, setSavingName] = useState(false);
+  const [scheduleTitle, setScheduleTitle] = useState('');
+  const [scheduleDate, setScheduleDate] = useState(() => {
+    const d = new Date();
+    return d.toISOString().slice(0,10);
+  });
+  const [scheduleTime, setScheduleTime] = useState('07:00');
+  const [scheduleRecurrence, setScheduleRecurrence] = useState<'none'|'daily'|'weekly'>('none');
+
+  // Modal states
+  const [showWorkoutForm, setShowWorkoutForm] = useState(false);
+  const [showGoalForm, setShowGoalForm] = useState(false);
+  const [showStats, setShowStats] = useState(false);
+  const [showLogProgress, setShowLogProgress] = useState(false);
+
 
   useEffect(() => {
     // Simulate loading time for better UX
@@ -172,13 +190,51 @@ const Dashboard: React.FC = () => {
         </div>
       )}
 
+
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold text-white mb-4">
+        <div className="text-center mb-8 relative">
+          <NotificationBell />
+          
+        
+        </div>
+        <div className="mb-6 max-w-md mx-auto">
+          <h3 className="text-lg text-white font-semibold mb-2">Schedule an activity</h3>
+          <div className="flex items-center gap-2">
+            <input value={scheduleTitle} onChange={e => setScheduleTitle(e.target.value)} placeholder="Activity name" className="w-1/2 px-3 py-2 rounded text-sm" />
+            <input type="date" value={scheduleDate} onChange={e => setScheduleDate(e.target.value)} className="px-3 py-2 rounded text-sm" />
+            <input type="time" value={scheduleTime} onChange={e => setScheduleTime(e.target.value)} className="px-3 py-2 rounded text-sm" />
+            <select value={scheduleRecurrence} onChange={e => setScheduleRecurrence(e.target.value as any)} className="px-2 py-2 rounded text-sm">
+              <option value="none">No Repeat</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+            </select>
+            <button onClick={async () => {
+              if (!user) return; if (!scheduleTitle) return;
+              // create ISO for selected date + time
+              const [hh, mm] = scheduleTime.split(':').map(Number);
+              const [yyyy, mmth, dd] = scheduleDate.split('-').map(Number);
+              const scheduled = new Date(yyyy, mmth - 1, dd, hh, mm, 0, 0);
+              try {
+                await addDoc(collection(db, 'users', user.uid, 'schedules'), {
+                  title: scheduleTitle,
+                  time: scheduled.toISOString(),
+                  recurrence: scheduleRecurrence,
+                  notified: false,
+                  createdAt: new Date().toISOString(),
+                });
+                setScheduleTitle('');
+              } catch (err) {
+                console.error('Failed to add schedule', err);
+              }
+            }} className="bg-orange-600 text-white px-3 py-2 rounded text-sm">Add</button>
+          </div>
+        </div>
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-white mb-2">
             Fitness Dashboard
           </h1>
-          <p className="text-xl text-orange-400 mb-4">Track your progress, crush your goals!</p>
+          <p className="text-xl text-orange-400">Track your progress, crush your goals!</p>
 
           {/* Motivational Quote */}
           <div className="bg-gradient-to-r from-gray-800 to-gray-700 rounded-lg p-6 max-w-2xl mx-auto">
@@ -246,7 +302,7 @@ const Dashboard: React.FC = () => {
         <div className="bg-gray-800 rounded-xl p-8 mb-8">
           <h3 className="text-2xl font-bold text-white mb-6 text-center">Weekly Progress</h3>
           <div className="grid grid-cols-7 gap-4">
-            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => (
+            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
               <div key={day} className="text-center">
                 <div className="text-gray-400 text-sm mb-2">{day}</div>
                 <div className="h-20 bg-gray-700 rounded-lg flex items-end justify-center pb-2">
@@ -301,19 +357,31 @@ const Dashboard: React.FC = () => {
               Quick Actions
             </h3>
             <div className="grid grid-cols-2 gap-4">
-              <button className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white p-4 rounded-lg font-medium transition-all duration-300 transform hover:scale-105 flex flex-col items-center">
+              <button
+                onClick={() => setShowWorkoutForm(true)}
+                className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white p-4 rounded-lg font-medium transition-all duration-300 transform hover:scale-105 flex flex-col items-center"
+              >
                 <span className="text-2xl mb-2">🏋️</span>
                 <span className="text-sm">Start Workout</span>
               </button>
-              <button className="bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white p-4 rounded-lg font-medium transition-all duration-300 transform hover:scale-105 flex flex-col items-center">
+              <button
+                onClick={() => setShowStats(true)}
+                className="bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white p-4 rounded-lg font-medium transition-all duration-300 transform hover:scale-105 flex flex-col items-center"
+              >
                 <span className="text-2xl mb-2">📊</span>
                 <span className="text-sm">View Stats</span>
               </button>
-              <button className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white p-4 rounded-lg font-medium transition-all duration-300 transform hover:scale-105 flex flex-col items-center">
+              <button
+                onClick={() => setShowGoalForm(true)}
+                className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white p-4 rounded-lg font-medium transition-all duration-300 transform hover:scale-105 flex flex-col items-center"
+              >
                 <span className="text-2xl mb-2">🎯</span>
                 <span className="text-sm">Set Goal</span>
               </button>
-              <button className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white p-4 rounded-lg font-medium transition-all duration-300 transform hover:scale-105 flex flex-col items-center">
+              <button
+                onClick={() => setShowLogProgress(true)}
+                className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white p-4 rounded-lg font-medium transition-all duration-300 transform hover:scale-105 flex flex-col items-center"
+              >
                 <span className="text-2xl mb-2">📝</span>
                 <span className="text-sm">Log Progress</span>
               </button>
@@ -321,11 +389,51 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
+        {/* Location Tracking */}
+        <div className="mb-8">
+          <LocationTracker />
+        </div>
+
         {/* Workout Management */}
         <div className="bg-gray-800 rounded-lg p-6">
           <WorkoutList />
         </div>
       </div>
+
+      {/* Modals */}
+      {showWorkoutForm && (
+        <WorkoutForm
+          onClose={() => setShowWorkoutForm(false)}
+          onSuccess={() => {
+            setShowWorkoutForm(false);
+            // Could refresh workout list here if needed
+          }}
+        />
+      )}
+
+      {showGoalForm && (
+        <GoalForm
+          onClose={() => setShowGoalForm(false)}
+          onSuccess={() => {
+            setShowGoalForm(false);
+            // Could refresh goals list here if needed
+          }}
+        />
+      )}
+
+      {showStats && (
+        <Stats onClose={() => setShowStats(false)} />
+      )}
+
+      {showLogProgress && (
+        <WorkoutForm
+          onClose={() => setShowLogProgress(false)}
+          onSuccess={() => {
+            setShowLogProgress(false);
+            // Could refresh workout list here if needed
+          }}
+        />
+      )}
     </div>
   );
 };

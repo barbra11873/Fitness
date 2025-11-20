@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users can read and write their own user profile
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Users can read and write their own workouts
+    match /workouts/{workoutId} {
+      allow read, write: if request.auth != null &&
+        resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null &&
+        request.auth.uid == request.resource.data.userId;
+    }
+
+    // Users can read and write their own goals
+    match /goals/{goalId} {
+      allow read, write: if request.auth != null &&
+        resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null &&
+        request.auth.uid == request.resource.data.userId;
+    }
+
+    // Users can read and write their own routes/location data
+    match /routes/{routeId} {
+      allow read, write: if request.auth != null &&
+        resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null &&
+        request.auth.uid == request.resource.data.userId;
+    }
+
+    // Users can read and write their own schedules
+    match /users/{userId}/schedules/{scheduleId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Allow test collection for debugging (remove in production)
+    match /test/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
