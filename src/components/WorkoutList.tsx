@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, orderBy, onSnapshot, doc, deleteDoc, limit } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, doc, deleteDoc, limit, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import type { Workout } from '../types/workout';
@@ -25,7 +25,7 @@ const WorkoutList: React.FC = () => {
       collection(db, 'workouts'),
       where('userId', '==', user.uid),
       orderBy('date', 'desc'),
-      limit(50) // Limit initial load for better performance
+      limit(20) // Reduced limit for faster initial load
     );
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {

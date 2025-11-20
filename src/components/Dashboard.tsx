@@ -1,9 +1,68 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import WorkoutList from './WorkoutList';
 
 const Dashboard: React.FC = () => {
   const { userProfile } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Simulate loading time for better UX
+    const timer = setTimeout(() => setIsLoading(false), 1000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-600 via-orange-800 to-red-900">
+        <div className="container mx-auto px-4 py-8">
+          {/* Welcome Banner Skeleton */}
+          <div className="bg-gradient-to-r from-orange-500 to-red-600 text-white py-4 px-4 shadow-lg mb-8 rounded-lg animate-pulse">
+            <div className="container mx-auto flex items-center justify-center">
+              <div className="h-8 bg-orange-400 rounded w-64"></div>
+            </div>
+          </div>
+
+          {/* Stats Cards Skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 p-6 rounded-xl shadow-lg animate-pulse">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-2">
+                    <div className="h-4 bg-gray-600 rounded w-24"></div>
+                    <div className="h-8 bg-gray-600 rounded w-16"></div>
+                  </div>
+                  <div className="h-12 w-12 bg-gray-600 rounded-full"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Content Skeleton */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 p-8 rounded-2xl shadow-xl animate-pulse">
+              <div className="h-8 bg-gray-600 rounded w-48 mb-6"></div>
+              <div className="space-y-4">
+                <div className="h-20 bg-gray-700 rounded-lg"></div>
+              </div>
+            </div>
+            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 p-8 rounded-2xl shadow-xl animate-pulse">
+              <div className="h-8 bg-gray-600 rounded w-40 mb-6"></div>
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex justify-between items-center">
+                    <div className="h-4 bg-gray-600 rounded w-16"></div>
+                    <div className="h-2 bg-gray-600 rounded w-24"></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-600 via-orange-800 to-red-900">
       {/* Welcome Banner */}
