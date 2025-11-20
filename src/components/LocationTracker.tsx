@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
 import type { LocationPoint, LocationState, TrackedRoute } from '../types/location';
-import { collection, addDoc, updateDoc, doc } from 'firebase/firestore';
+import { collection, addDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 
 const LocationTracker: React.FC = () => {

@@ -100,16 +100,6 @@ const WorkoutList: React.FC = () => {
     setWorkouts(prev => [optimisticWorkout, ...prev]);
   };
 
-  const getWorkoutTypeColor = (type: string) => {
-    switch (type) {
-      case 'strength': return 'bg-orange-500';
-      case 'cardio': return 'bg-red-500';
-      case 'flexibility': return 'bg-green-500';
-      case 'sports': return 'bg-blue-500';
-      default: return 'bg-purple-500';
-    }
-  };
-
   const getWorkoutTypeIcon = (type: string) => {
     switch (type) {
       case 'strength': return '💪';

@@ -14,7 +14,6 @@ interface GoalFormProps {
 
 const GoalForm: React.FC<GoalFormProps> = ({ goal, onClose, onSuccess }) => {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
   const { register, handleSubmit, watch, formState: { errors } } = useForm<GoalFormData>({
     defaultValues: goal ? {
       title: goal.title,
@@ -191,17 +190,9 @@ const GoalForm: React.FC<GoalFormProps> = ({ goal, onClose, onSuccess }) => {
             </button>
             <button
               type="submit"
-              disabled={loading}
-              className="flex-1 py-3 px-4 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-lg font-medium transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 py-3 px-4 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-lg font-medium transition-all duration-300 transform hover:scale-105"
             >
-              {loading ? (
-                <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                  {goal ? 'Updating...' : 'Creating...'}
-                </div>
-              ) : (
-                goal ? 'Update Goal' : 'Create Goal'
-              )}
+              {goal ? 'Update Goal' : 'Create Goal'}
             </button>
           </div>
         </form>

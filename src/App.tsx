@@ -8,10 +8,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 // Lazy load components for better performance
 const Dashboard = lazy(() => import('./components/Dashboard'));
 const LandingPage = lazy(() => import('./components/LandingPage'));
-const Login = lazy(() => import('./components/Auth/Login'));
-const Register = lazy(() => import('./components/Auth/Register'));
 const ResetPassword = lazy(() => import('./components/Auth/ResetPassword'));
-const ProtectedRoute = lazy(() => import('./components/Auth/ProtectedRoute'));
 
 // Loading component
 const LoadingSpinner = () => (

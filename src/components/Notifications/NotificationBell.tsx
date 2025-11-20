@@ -9,6 +9,8 @@ type ScheduleItem = {
   title: string;
   time: string; // ISO string
   notified?: boolean;
+  dismissed?: boolean;
+  recurrence?: 'none' | 'daily' | 'weekly';
 };
 
 const NotificationBell: React.FC = () => {
@@ -22,7 +24,7 @@ const NotificationBell: React.FC = () => {
     (async () => {
       try {
         // TODO: replace VAPID_KEY with your Web Push certificate key from Firebase console
-        const vapidKey = process.env.REACT_APP_VAPID_KEY || 'REPLACE_WITH_VAPID_KEY';
+        const vapidKey = import.meta.env.VITE_VAPID_KEY || 'REPLACE_WITH_VAPID_KEY';
         const token = await getToken(messaging, { vapidKey });
         if (token) {
           // store token in user doc

@@ -46,9 +46,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [profileLoaded, setProfileLoaded] = useState<Set<string>>(new Set());
 
-  // Cache for faster subsequent loads
-  const [authChecked, setAuthChecked] = useState(false);
-
   const fetchUserProfile = async (userId: string) => {
     // Check if profile is already loaded to avoid duplicate requests
     if (profileLoaded.has(userId)) {
