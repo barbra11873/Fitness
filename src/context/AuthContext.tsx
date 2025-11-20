@@ -13,6 +13,7 @@ interface UserProfile {
 interface AuthContextType {
   user: User | null;
   userProfile: UserProfile | null;
+  refreshProfile: (userId?: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<any>;
   logout: () => Promise<void>;
@@ -23,6 +24,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>({
   user: null,
   userProfile: null,
+  refreshProfile: async () => {},
   login: async () => {},
   register: async () => {},
   logout: async () => {},
@@ -42,8 +44,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoaded, setProfileLoaded] = useState<Set<string>>(new Set());
+
+  // Cache for faster subsequent loads
+  const [authChecked, setAuthChecked] = useState(false);
 
   const fetchUserProfile = async (userId: string) => {
+    // Check if profile is already loaded to avoid duplicate requests
+    if (profileLoaded.has(userId)) {
+      return;
+    }
+
     try {
       const userDocRef = doc(db, 'users', userId);
       const userDoc = await getDoc(userDocRef);
@@ -59,6 +70,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         setUserProfile(defaultProfile);
       }
+      // Mark as loaded
+      setProfileLoaded(prev => new Set(prev).add(userId));
     } catch (error) {
       console.error('Error fetching user profile:', error);
       // Set fallback profile on error
@@ -67,7 +80,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         lastName: '',
         email: '',
       });
+      // Still mark as loaded to avoid retry loops
+      setProfileLoaded(prev => new Set(prev).add(userId));
     }
+  };
+
+  const refreshProfile = async (userId?: string) => {
+    const id = userId ?? user?.uid;
+    if (!id) return;
+    // Remove from loaded cache so fetchUserProfile will refetch
+    setProfileLoaded(prev => {
+      const copy = new Set(prev);
+      copy.delete(id);
+      return copy;
+    });
+    await fetchUserProfile(id);
   };
 
   useEffect(() => {
@@ -120,6 +147,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const value = {
     user,
     userProfile,
+    refreshProfile,
     login,
     register,
     logout,

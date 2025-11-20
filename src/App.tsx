@@ -13,11 +13,42 @@ function AppContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-600 via-orange-800 to-red-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-orange-400 border-opacity-50 mx-auto mb-4"></div>
-          <h2 className="text-2xl font-bold text-white mb-2">Loading your fitness journey...</h2>
-          <p className="text-gray-300">Get ready to crush your goals! 💪</p>
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center px-4">
+        <div className="text-center max-w-4xl mx-auto">
+          <div className="text-8xl mb-8 animate-bounce">💪</div>
+          <h1 className="text-6xl md:text-7xl font-black text-white mb-6 bg-gradient-to-r from-orange-400 via-red-500 to-pink-500 bg-clip-text text-transparent">
+            WELCOME TO YOUR
+          </h1>
+          <h2 className="text-5xl md:text-6xl font-black text-white mb-8 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+            FITNESS JOURNEY
+          </h2>
+          <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
+            Get ready to transform your body, crush your goals, and become the best version of yourself!
+          </p>
+          <div className="flex justify-center space-x-4 mb-8">
+            <div className="flex items-center space-x-2 text-orange-400">
+              <span className="text-2xl">🏋️</span>
+              <span className="font-semibold">Strength</span>
+            </div>
+            <div className="flex items-center space-x-2 text-green-400">
+              <span className="text-2xl">❤️</span>
+              <span className="font-semibold">Cardio</span>
+            </div>
+            <div className="flex items-center space-x-2 text-blue-400">
+              <span className="text-2xl">🧘</span>
+              <span className="font-semibold">Flexibility</span>
+            </div>
+            <div className="flex items-center space-x-2 text-purple-400">
+              <span className="text-2xl">🏆</span>
+              <span className="font-semibold">Goals</span>
+            </div>
+          </div>
+          <div className="mt-8">
+            <div className="inline-flex items-center space-x-2 bg-orange-600/20 px-6 py-3 rounded-full">
+              <div className="animate-spin rounded-full h-5 w-5 border-2 border-orange-400 border-t-transparent"></div>
+              <span className="text-orange-400 font-medium">Preparing your dashboard...</span>
+            </div>
+          </div>
         </div>
       </div>
     );

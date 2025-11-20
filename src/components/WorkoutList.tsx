@@ -25,7 +25,7 @@ const WorkoutList: React.FC = () => {
       collection(db, 'workouts'),
       where('userId', '==', user.uid),
       orderBy('date', 'desc'),
-      limit(20) // Reduced limit for faster initial load
+      limit(10) // Even more reduced for fastest initial load
     );
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -35,11 +35,24 @@ const WorkoutList: React.FC = () => {
         workoutData.push({
           id: doc.id,
           ...data,
-          createdAt: data.createdAt?.toDate(),
-          updatedAt: data.updatedAt?.toDate(),
+          createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : data.createdAt,
+          updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : data.updatedAt,
         } as Workout);
       });
-      setWorkouts(workoutData);
+
+      // Replace any optimistic workouts with real ones from Firebase
+      setWorkouts(prevWorkouts => {
+        const realWorkouts = workoutData;
+        const optimisticWorkouts = prevWorkouts.filter(w => w.id?.startsWith('temp-'));
+
+        // Remove optimistic workouts that now have real counterparts
+        const filteredOptimistic = optimisticWorkouts.filter(optimistic =>
+          !realWorkouts.some(real => real.date === optimistic.date && real.type === optimistic.type)
+        );
+
+        return [...realWorkouts, ...filteredOptimistic];
+      });
+
       setLoading(false);
     }, (error) => {
       console.error('Error fetching workouts:', error);
@@ -73,6 +86,18 @@ const WorkoutList: React.FC = () => {
 
   const handleFormSuccess = () => {
     // The onSnapshot listener will automatically update the list
+  };
+
+  const handleOptimisticAdd = (workout: Omit<Workout, 'id'>) => {
+    // Generate a temporary ID for optimistic update
+    const tempId = `temp-${Date.now()}`;
+    const optimisticWorkout: Workout = {
+      ...workout,
+      id: tempId,
+    };
+
+    // Add to the beginning of the list (most recent first)
+    setWorkouts(prev => [optimisticWorkout, ...prev]);
   };
 
   const getWorkoutTypeColor = (type: string) => {
@@ -129,52 +154,43 @@ const WorkoutList: React.FC = () => {
           </button>
         </div>
       ) : (
-        <div className="grid gap-4">
+        <div className="space-y-3">
           {workouts.map((workout) => (
-            <div
-              key={workout.id}
-              className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex items-start space-x-4">
-                  <div className={`w-12 h-12 rounded-full ${getWorkoutTypeColor(workout.type)} flex items-center justify-center text-white text-xl flex-shrink-0`}>
-                    {getWorkoutTypeIcon(workout.type)}
+            <div key={workout.id} className="bg-gray-700 p-4 rounded-lg">
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <div className="flex items-center space-x-2 mb-1">
+                    <span className="text-lg">{getWorkoutTypeIcon(workout.type)}</span>
+                    <h3 className="font-semibold text-white capitalize">
+                      {workout.type} Workout
+                    </h3>
+                    <span className="text-sm text-gray-400">
+                      {new Date(workout.date).toLocaleDateString()}
+                    </span>
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <h3 className="text-lg font-semibold text-white capitalize">
-                        {workout.type} Workout
-                      </h3>
-                      <span className="text-sm text-gray-400">
-                        {new Date(workout.date).toLocaleDateString()}
-                      </span>
-                    </div>
-                    {workout.duration && (
-                      <p className="text-sm text-orange-400 mb-2">
-                        Duration: {workout.duration} minutes
-                      </p>
-                    )}
-                    {workout.notes && (
-                      <p className="text-gray-300 text-sm leading-relaxed">
-                        {workout.notes}
-                      </p>
-                    )}
-                  </div>
+                  {workout.duration && (
+                    <p className="text-sm text-orange-400">
+                      {workout.duration} minutes
+                    </p>
+                  )}
+                  {workout.notes && (
+                    <p className="text-gray-300 text-sm mt-1">
+                      {workout.notes}
+                    </p>
+                  )}
                 </div>
-                <div className="flex space-x-2 ml-4">
+                <div className="flex space-x-2">
                   <button
                     onClick={() => handleEdit(workout)}
-                    className="text-blue-400 hover:text-blue-300 p-2 rounded-lg hover:bg-blue-500/10 transition-colors"
-                    title="Edit workout"
+                    className="text-blue-400 hover:text-blue-600 px-2 py-1"
                   >
-                    ✏️
+                    Edit
                   </button>
                   <button
                     onClick={() => workout.id && handleDelete(workout.id)}
-                    className="text-red-400 hover:text-red-300 p-2 rounded-lg hover:bg-red-500/10 transition-colors"
-                    title="Delete workout"
+                    className="text-red-400 hover:text-red-600 px-2 py-1"
                   >
-                    🗑️
+                    Delete
                   </button>
                 </div>
               </div>
@@ -188,6 +204,7 @@ const WorkoutList: React.FC = () => {
           workout={editingWorkout}
           onClose={handleFormClose}
           onSuccess={handleFormSuccess}
+          onOptimisticAdd={handleOptimisticAdd}
         />
       )}
     </div>

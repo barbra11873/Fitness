@@ -10,9 +10,10 @@ interface WorkoutFormProps {
   workout?: Workout;
   onClose: () => void;
   onSuccess: () => void;
+  onOptimisticAdd?: (workout: Omit<Workout, 'id'>) => void;
 }
 
-const WorkoutForm: React.FC<WorkoutFormProps> = ({ workout, onClose, onSuccess }) => {
+const WorkoutForm: React.FC<WorkoutFormProps> = ({ workout, onClose, onSuccess, onOptimisticAdd }) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<WorkoutFormData>();
@@ -39,6 +40,7 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({ workout, onClose, onSuccess }
     }
 
     setLoading(true);
+
     try {
       const workoutData = {
         userId: user.uid,
@@ -50,18 +52,40 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({ workout, onClose, onSuccess }
       };
 
       if (isEditing && workout?.id) {
+        // For editing, wait for Firebase update
         await updateDoc(doc(db, 'workouts', workout.id), workoutData);
         toast.success('Workout updated successfully!');
+        onSuccess();
+        onClose();
       } else {
-        await addDoc(collection(db, 'workouts'), {
+        // For new workouts, use optimistic updates
+        const optimisticWorkout: Omit<Workout, 'id'> = {
           ...workoutData,
           createdAt: new Date(),
-        });
-        toast.success('Workout added successfully!');
-      }
+        };
 
-      onSuccess();
-      onClose();
+        // Immediately add to UI (optimistic update)
+        if (onOptimisticAdd) {
+          onOptimisticAdd(optimisticWorkout);
+        }
+
+        // Close modal immediately for better UX
+        onSuccess();
+        onClose();
+        toast.success('Workout added successfully!');
+
+        // Sync with Firebase in background
+        try {
+          await addDoc(collection(db, 'workouts'), {
+            ...workoutData,
+            createdAt: new Date(),
+          });
+        } catch (error) {
+          console.error('Error syncing workout to Firebase:', error);
+          // Could implement retry logic here if needed
+          toast.error('Workout saved locally but failed to sync. Please check your connection.');
+        }
+      }
     } catch (error: any) {
       console.error('Error saving workout:', error);
       const errorMessage = error?.message || 'Failed to save workout. Please try again.';
@@ -73,39 +97,32 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({ workout, onClose, onSuccess }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-gray-800 rounded-2xl p-8 w-full max-w-md border border-gray-700 shadow-2xl">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-white">
+      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold text-white">
             {isEditing ? 'Edit Workout' : 'Add New Workout'}
           </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white text-2xl"
-          >
+          <button onClick={onClose} className="text-gray-400 hover:text-white text-xl">
             ×
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Date
-            </label>
+            <label className="block text-sm text-gray-300 mb-1">Date</label>
             <input
               type="date"
               {...register('date', { required: 'Date is required' })}
-              className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
             />
-            {errors.date && <p className="text-red-400 text-sm mt-1">{errors.date.message}</p>}
+            {errors.date && <p className="text-red-400 text-sm">{errors.date.message}</p>}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Workout Type
-            </label>
+            <label className="block text-sm text-gray-300 mb-1">Workout Type</label>
             <select
               {...register('type', { required: 'Workout type is required' })}
-              className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
             >
               <option value="">Select type</option>
               <option value="strength">Strength Training</option>
@@ -114,55 +131,44 @@ const WorkoutForm: React.FC<WorkoutFormProps> = ({ workout, onClose, onSuccess }
               <option value="sports">Sports</option>
               <option value="other">Other</option>
             </select>
-            {errors.type && <p className="text-red-400 text-sm mt-1">{errors.type.message}</p>}
+            {errors.type && <p className="text-red-400 text-sm">{errors.type.message}</p>}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Duration (minutes)
-            </label>
+            <label className="block text-sm text-gray-300 mb-1">Duration (minutes)</label>
             <input
               type="number"
               min="0"
               {...register('duration', { valueAsNumber: true })}
-              className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
               placeholder="Optional"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Notes
-            </label>
+            <label className="block text-sm text-gray-300 mb-1">Notes</label>
             <textarea
               {...register('notes')}
-              rows={4}
-              className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
-              placeholder="Add workout notes, exercises, or observations..."
+              rows={3}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+              placeholder="Add workout notes..."
             />
           </div>
 
-          <div className="flex space-x-4">
+          <div className="flex space-x-3 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-3 px-4 border border-gray-600 rounded-lg text-gray-300 hover:bg-gray-700 transition-colors"
+              className="flex-1 py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-500"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 py-3 px-4 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-lg font-medium transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 py-2 px-4 bg-orange-600 text-white rounded hover:bg-orange-500 disabled:opacity-50"
             >
-              {loading ? (
-                <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  {isEditing ? 'Updating...' : 'Adding...'}
-                </div>
-              ) : (
-                isEditing ? 'Update Workout' : 'Add Workout'
-              )}
+              {loading ? 'Saving...' : (isEditing ? 'Update' : 'Add')}
             </button>
           </div>
         </form>
