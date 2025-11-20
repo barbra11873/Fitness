@@ -64,9 +64,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         // Create default profile if it doesn't exist
         const defaultProfile: UserProfile = {
-          firstName: 'User',
+          firstName: user?.email?.split('@')[0] || user?.displayName || 'Fitness',
           lastName: '',
-          email: '',
+          email: user?.email || '',
         };
         setUserProfile(defaultProfile);
       }
@@ -76,9 +76,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Error fetching user profile:', error);
       // Set fallback profile on error
       setUserProfile({
-        firstName: 'User',
+        firstName: user?.email?.split('@')[0] || user?.displayName || 'Fitness',
         lastName: '',
-        email: '',
+        email: user?.email || '',
       });
       // Still mark as loaded to avoid retry loops
       setProfileLoaded(prev => new Set(prev).add(userId));

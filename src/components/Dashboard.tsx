@@ -4,10 +4,25 @@ import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { toast } from 'react-toastify';
 import WorkoutList from './WorkoutList';
+import { signOut } from 'firebase/auth';
+import { auth } from '../firebase';
 
 const Dashboard: React.FC = () => {
   const { userProfile, user, refreshProfile } = useAuth();
-  const displayName = (userProfile?.firstName || user?.displayName || user?.email?.split('@')[0]) || 'User';
+  const displayName = (
+    userProfile?.firstName ||
+    user?.displayName ||
+    user?.email?.split('@')[0] ||
+    'Fitness Champion'
+  ).replace(/^\w/, c => c.toUpperCase()); // Capitalize first letter
+
+  // Debug logging to see what name is being used
+  console.log('Dashboard displayName debug:', {
+    userProfileFirstName: userProfile?.firstName,
+    userDisplayName: user?.displayName,
+    userEmail: user?.email,
+    finalDisplayName: displayName
+  });
   const capitalize = (s: string) => s ? (s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()) : s;
   const [isLoading, setIsLoading] = useState(true);
   
@@ -82,15 +97,30 @@ const Dashboard: React.FC = () => {
               Welcome {capitalize(displayName)} 😊
             </h1>
             <p className="text-orange-100">Ready to crush your fitness goals today!</p>
-            <button
-              onClick={() => {
-                setEditedName(userProfile?.firstName || user?.displayName || '');
-                setIsEditing(true);
-              }}
-              className="mt-3 text-sm bg-orange-700/30 hover:bg-orange-700/50 px-3 py-1 rounded transition-colors"
-            >
-              Edit Name
-            </button>
+            <div className="mt-3 flex space-x-2">
+              <button
+                onClick={() => {
+                  setEditedName(userProfile?.firstName || user?.displayName || '');
+                  setIsEditing(true);
+                }}
+                className="text-sm bg-orange-700/30 hover:bg-orange-700/50 px-3 py-1 rounded transition-colors"
+              >
+                Edit Name
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    await signOut(auth);
+                    toast.success('Logged out successfully');
+                  } catch (error) {
+                    toast.error('Error logging out');
+                  }
+                }}
+                className="text-sm bg-red-600/30 hover:bg-red-600/50 px-3 py-1 rounded transition-colors"
+              >
+                Logout
+              </button>
+            </div>
 
             {isEditing && (
               <div className="mt-3 flex items-center justify-center space-x-2">
